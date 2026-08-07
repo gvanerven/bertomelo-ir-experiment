@@ -1,0 +1,145 @@
+{
+  "builder_name": "mmarco",
+  "citation": "\n@misc{bonifacio2021mmarco,\n      title={mMARCO: A Multilingual Version of the MS MARCO Passage Ranking Dataset},\n      author={Luiz Henrique Bonifacio and Israel Campiotti and Vitor Jeronymo and Hugo Queiroz Abonizio and Roberto Lotufo and Rodrigo Nogueira},\n      year={2021},\n      eprint={2108.13897},\n      archivePrefix={arXiv},\n      primaryClass={cs.CL}\n}\n",
+  "config_name": "portuguese",
+  "dataset_name": "mmarco",
+  "dataset_size": 33124279607,
+  "description": "\nmMARCO translated datasets\n\nPortuguese triples",
+  "download_checksums": {
+    "https://huggingface.co/datasets/unicamp-dl/mmarco/resolve/main/data/google/collections/portuguese_collection.tsv": {
+      "num_bytes": 3431011785,
+      "checksum": null
+    },
+    "https://huggingface.co/datasets/unicamp-dl/mmarco/resolve/main/data/google/queries/train/portuguese_queries.train.tsv": {
+      "num_bytes": 39281063,
+      "checksum": null
+    },
+    "https://huggingface.co/datasets/unicamp-dl/mmarco/resolve/main/data/triples.train.ids.small.tsv": {
+      "num_bytes": 905211990,
+      "checksum": null
+    }
+  },
+  "download_size": 4375504838,
+  "features": {
+    "counts": {
+      "palavras_query": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "palavras_positive": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "palavras_negative": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "qtd_palavras_query": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "tokens_query": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "tokens_positive": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "tokens_negative": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "qtd_tokens_query": {
+        "dtype": "int64",
+        "_type": "Value"
+      }
+    }
+  },
+  "homepage": "https://github.com/unicamp-dl/mMARCO",
+  "license": "",
+  "size_in_bytes": 37499784445,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 33124279607,
+      "num_examples": 39780811,
+      "shard_lengths": [
+        601000,
+        602000,
+        602000,
+        601000,
+        600000,
+        601000,
+        601000,
+        599000,
+        602000,
+        601000,
+        600000,
+        601000,
+        602000,
+        601000,
+        601000,
+        601000,
+        601000,
+        601000,
+        603000,
+        601000,
+        600000,
+        600000,
+        600000,
+        601000,
+        602000,
+        600000,
+        600000,
+        600000,
+        602000,
+        601000,
+        601000,
+        599000,
+        601000,
+        601000,
+        601000,
+        600000,
+        601000,
+        601000,
+        602000,
+        601000,
+        601000,
+        602000,
+        600000,
+        600000,
+        601000,
+        601000,
+        601000,
+        602000,
+        602000,
+        601000,
+        601000,
+        601000,
+        601000,
+        601000,
+        601000,
+        601000,
+        602000,
+        601000,
+        600000,
+        602000,
+        600000,
+        602000,
+        601000,
+        601000,
+        601000,
+        601000,
+        116811
+      ],
+      "dataset_name": "mmarco"
+    }
+  },
+  "version": {
+    "version_str": "2.0.0",
+    "major": 2,
+    "minor": 0,
+    "patch": 0
+  }
+}
