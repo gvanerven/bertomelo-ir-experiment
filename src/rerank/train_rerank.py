@@ -98,7 +98,7 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Number of triples held out from the train split for evaluation (0 disables eval).",
     )
-    parser.add_argument("--max_length", type=int, default=256)
+    parser.add_argument("--max_length", type=int, default=8192)
 
     # Optimization
     parser.add_argument("--output_dir", type=str, default="./output/modernbert-rerank-ptbr")
@@ -174,7 +174,7 @@ class RerankCollator:
     """Tokenizes (query, positive) and (query, negative) pairs separately."""
 
     tokenizer: PreTrainedTokenizerBase
-    max_length: int = 256
+    max_length: int = 8192
 
     def __call__(self, features: List[Dict[str, str]]) -> Dict[str, torch.Tensor]:
         queries = [f["query"] for f in features]
