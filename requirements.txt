@@ -78,6 +78,7 @@ Pygments==2.20.0
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
 pyzmq==27.1.0
+rank_bm25==0.2.2
 regex==2026.5.9
 requests==2.34.2
 rich==15.0.0
