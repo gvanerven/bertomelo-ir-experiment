@@ -13,17 +13,20 @@ reranker from triples.
 
 Example
 -------
-python src/rerank/train_rerank.py \\
-    --model_name_or_path unb-labia/BERTomelo-ModernBERT-Base-v1 \\
-    --output_dir ./output/bertomelo-modernbert-rerank-ptbr \\
+python train_rerank.py \\
+    --model_name_or_path unb-labia/BERTomelo-ModernBERT-Base-8k-Experimental \\
+    --output_dir /home/gustavocgve/rede/output-rerank/bertomelo-modernbert-base-8k-ft-rerank-ptbr \\
+    --dataset_dir /home/gustavocgve/rede/data/mmarco-portuguese \\
     --num_train_epochs 1 \\
-    --per_device_train_batch_size 32 \\
-    --max_train_samples 1000000
+    --eval_size 5000 \\
+    --per_device_train_batch_size 64 \\
+    --attn_implementation flash_attention_2 \\
+    --bf16
 
 For the full ~39.7M-example train split, streaming avoids downloading the
 whole dataset upfront:
 
-python src/rerank/train_rerank.py --streaming --max_steps 200000
+python train_rerank.py --streaming --max_steps 200000
 """
 
 from __future__ import annotations
@@ -36,7 +39,7 @@ from typing import Any, Dict, Iterable, List
 import torch
 import torch.nn.functional as F
 from datasets import IterableDataset as HFIterableDataset
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from torch.utils.data import Dataset, IterableDataset
 from transformers import (
     AutoModelForSequenceClassification,
@@ -45,6 +48,7 @@ from transformers import (
     PreTrainedTokenizerBase,
     Trainer,
     TrainingArguments,
+    EarlyStoppingCallback,
     set_seed,
 )
 
@@ -72,6 +76,7 @@ def parse_args() -> argparse.Namespace:
     )
 
     # Dataset
+    parser.add_argument("--dataset_dir", type=str, default=None, help="Path to the dataset directory (if already downloaded).")
     parser.add_argument("--dataset_name", type=str, default="unicamp-dl/mmarco")
     parser.add_argument("--dataset_config", type=str, default="portuguese")
     parser.add_argument("--dataset_split", type=str, default="train")
@@ -112,20 +117,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--per_device_train_batch_size", type=int, default=16)
     parser.add_argument("--per_device_eval_batch_size", type=int, default=32)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
-    parser.add_argument("--learning_rate", type=float, default=2e-5)
-    parser.add_argument("--weight_decay", type=float, default=0.01)
-    parser.add_argument("--warmup_ratio", type=float, default=0.1)
+    parser.add_argument("--learning_rate", type=float, default=5e-4)
+    parser.add_argument("--weight_decay", type=float, default=1e-5)
+    parser.add_argument("--warmup_steps", type=int, default=1000)
     parser.add_argument("--gradient_checkpointing", action="store_true")
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--bf16", action="store_true")
 
     # Logging / checkpointing
-    parser.add_argument("--logging_steps", type=int, default=50)
+    parser.add_argument("--logging_steps", type=int, default=1000)
     parser.add_argument("--save_strategy", type=str, default="steps", choices=["no", "steps", "epoch"])
     parser.add_argument("--save_steps", type=int, default=1000)
     parser.add_argument("--eval_steps", type=int, default=1000)
     parser.add_argument("--save_total_limit", type=int, default=2)
-    parser.add_argument("--dataloader_num_workers", type=int, default=4)
+    parser.add_argument("--dataloader_num_workers", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
 
     # Hub
@@ -240,14 +245,25 @@ def compute_metrics(eval_pred: EvalPrediction) -> Dict[str, float]:
 
 
 def build_datasets(args: argparse.Namespace):
-    raw_dataset = load_dataset(
-        args.dataset_name,
-        args.dataset_config,
-        split=args.dataset_split,
-        streaming=args.streaming,
-    )
+    if args.dataset_dir is not None:
+        logger.info("Loading dataset from disk: %s", args.dataset_dir)
+        raw_dataset = load_from_disk(args.dataset_dir)["train"]
+    else:
+        logger.info(
+            "Loading dataset %s/%s (split=%s, streaming=%s)",
+            args.dataset_name,
+            args.dataset_config,
+            args.dataset_split,
+            args.streaming,
+        )
+        raw_dataset = load_dataset(
+            args.dataset_name,
+            args.dataset_config,
+            split=args.dataset_split,
+            streaming=args.streaming,
+        )
 
-    if args.streaming:
+    if args.dataset_dir is None and args.streaming:
         raw_dataset = raw_dataset.shuffle(seed=args.seed, buffer_size=args.shuffle_buffer_size)
 
         eval_raw = None
@@ -299,7 +315,7 @@ def main() -> None:
     if args.attn_implementation is not None:
         model_kwargs["attn_implementation"] = args.attn_implementation
     model = AutoModelForSequenceClassification.from_pretrained(
-        args.model_name_or_path, **model_kwargs
+        args.model_name_or_path, device_map="auto", **model_kwargs
     )
 
     logger.info(
@@ -312,6 +328,7 @@ def main() -> None:
     train_dataset, eval_dataset = build_datasets(args)
 
     collator = RerankCollator(tokenizer=tokenizer, max_length=args.max_length)
+    early_stopping = EarlyStoppingCallback(early_stopping_patience=4)
 
     training_args = TrainingArguments(
         output_dir=args.output_dir,
@@ -322,7 +339,7 @@ def main() -> None:
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
-        warmup_ratio=args.warmup_ratio,
+        warmup_steps=args.warmup_steps,
         gradient_checkpointing=args.gradient_checkpointing,
         fp16=args.fp16,
         bf16=args.bf16,
@@ -334,10 +351,12 @@ def main() -> None:
         eval_steps=args.eval_steps if eval_dataset is not None else None,
         dataloader_num_workers=args.dataloader_num_workers,
         remove_unused_columns=False,
-        report_to="none",
         seed=args.seed,
         push_to_hub=args.push_to_hub,
         hub_model_id=args.hub_model_id,
+        load_best_model_at_end=True,
+        report_to="tensorboard",
+        #report_to=["tensorboard", "mlflow"],
     )
 
     trainer = RerankTrainer(
@@ -346,6 +365,7 @@ def main() -> None:
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         data_collator=collator,
+        callbacks=[early_stopping],
         compute_metrics=compute_metrics if eval_dataset is not None else None,
     )
 
