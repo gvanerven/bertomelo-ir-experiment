@@ -1,0 +1,1 @@
+nohup python train_rerank.py --model_name_or_path Itau-Unibanco/NorBERTo-base --output_dir /home/gustavocgve/rede/output-rerank/NorBERTo-base --dataset_dir /home/gustavocgve/rede/data/mmarco-portuguese --num_train_epochs 1 --eval_size 1000 --per_device_train_batch_size 32 --attn_implementation flash_attention_2 --bf16 --learning_rate 5e-4 &

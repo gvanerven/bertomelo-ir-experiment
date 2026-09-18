@@ -23,6 +23,8 @@ python train_rerank.py \\
     --attn_implementation flash_attention_2 \\
     --bf16
 
+nohup python train_rerank.py --model_name_or_path unb-labia/BERTomelo-ModernBERT-Base-8k-Experimental --output_dir /home/gustavocgve/rede/output-rerank/bertomelo-modernbert-base-8k-ft-rerank-ptbr --dataset_dir /home/gustavocgve/rede/data/mmarco-portuguese --num_train_epochs 1 --eval_size 1000 --per_device_train_batch_size 32 --attn_implementation flash_attention_2 --bf16 --learning_rate 5e-4 &
+
 For the full ~39.7M-example train split, streaming avoids downloading the
 whole dataset upfront:
 
