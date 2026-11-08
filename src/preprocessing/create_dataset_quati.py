@@ -14,10 +14,11 @@ passages = load_dataset("unicamp-dl/quati", "quati_1M_passages", trust_remote_co
 qrels = load_dataset("unicamp-dl/quati", "quati_1M_qrels", trust_remote_code=True)
 queries = load_dataset("unicamp-dl/quati", "quati_all_topics", trust_remote_code=True)
 
-passages_hashed = passages["quati_1M_passages"].map(hash_passage, batched=True, batch_size=1000, num_proc=12)
-passages_hashed = passages_hashed.map(split_passage, batched=True, batch_size=1000, num_proc=12)
+#passages_hashed = passages["quati_1M_passages"].map(hash_passage, batched=True, batch_size=1000, num_proc=12)
+#passages_hashed = passages_hashed.map(split_passage, batched=True, batch_size=1000, num_proc=12)
 
-passages_hashed.to_parquet("data/quati/passages.parquet")
+#passages_hashed.to_parquet("data/quati/passages.parquet")
+passages["quati_1M_passages"].to_parquet("data/quati/passages.parquet")
 qrels["quati_1M_qrels"].to_parquet("data/quati/rel_queries_passages.parquet")
 queries["quati_all_topics"].to_parquet("data/quati/queries.parquet")
 

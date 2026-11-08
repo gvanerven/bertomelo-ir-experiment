@@ -17,22 +17,23 @@ def hash_passage(passages):
     hashs = [hashlib.sha256(passage.encode('utf-8')).hexdigest() for passage in passages['positive']]
     return {'positive_hash': hashs}
 
-def main(db_path, prefix_name, model_id, size=100000):    
+def main(db_path, prefix_name, model_id, size=10000):    
     if not os.path.exists("data/dataset_mmarco"):
         dataset = load_dataset('unicamp-dl/mmarco', 'portuguese', split='train', trust_remote_code=True, keep_in_memory=False)
         train, test = dataset.train_test_split(test_size=0.20, seed=42).values()
-        train.to_parquet("data/dataset_mmarco/train.parquet")
+        #train.to_parquet("data/dataset_mmarco/train.parquet")
         test.to_parquet("data/dataset_mmarco/test.parquet")
         del dataset
     else:
         #train = load_dataset("parquet", data_files="data/dataset_mmarco/train.parquet", split="train", keep_in_memory=False)
         #test = load_dataset("parquet", data_files="data/dataset_mmarco/test.parquet", split="train", keep_in_memory=False)
         logger.info("Loading dataset from parquet files...")
-        train = pd.read_parquet("data/dataset_mmarco/train.parquet")
-        #test = pd.read_parquet("data/dataset_mmarco/test.parquet")
+        #train = pd.read_parquet("data/dataset_mmarco/train.parquet")
+        test = pd.read_parquet("data/dataset_mmarco/test.parquet")
         
     #datasets = {'train': train, 'test': test}
-    datasets = {'train': train}
+    #datasets = {'train': train}
+    datasets = {'train': test}
     #model = SentenceTransformer(model_id)
     db = lancedb.connect(db_path)
     for split_name, dataset in datasets.items():
@@ -116,5 +117,5 @@ if __name__ == "__main__":
     for model_id in model_ids:
         #prefix_name = model_id.split("/")[-1]
         prefix_name = 'reranking'
-        main(db_path=db_path, prefix_name=prefix_name, model_id=model_id, size=100000)
+        main(db_path=db_path, prefix_name=prefix_name, model_id=model_id, size=10000)
         
