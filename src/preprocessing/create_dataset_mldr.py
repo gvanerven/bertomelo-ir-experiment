@@ -9,7 +9,6 @@ import pyarrow as pa
 #from sentence_transformers import SentenceTransformer
 import os
 import pandas as pd
-import torch
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -58,6 +57,7 @@ def main(db_path, prefix_name, num_rows_commitment=500):
                 pa.field("query_id", pa.string()),
                 pa.field("passage_id", pa.string()),
                 pa.field("score", pa.int32()),
+                pa.field("par_qtd_word_size", pa.int32()),
             ]
         ))
     record_query = []
@@ -68,32 +68,34 @@ def main(db_path, prefix_name, num_rows_commitment=500):
     idx_query = 1
     logger.info(f"Processing split train with {len(train)} rows")
     for _, row in train.iterrows():
-        if row["query_id"] not in query_ids:
-            record_query.append({
-                "query_id": row["query_id"],
-                "query": row["query"],
-            })
-            query_ids.add(row["query_id"])
-        for passage in row["positive_passages"]:
-            if passage['docid'] not in doc_ids:
-                record_passages.append({
-                    "passage_id": passage['docid'],
-                    "passage": passage['text'],
+        if row["query_id"] not in ['q-pt-1049', 'q-pt-222']: # ignorar queries que não possuem texto coerente (q-pt-222: idores. e q-pt-1049: ões.)
+            if row["query_id"] not in query_ids:
+                record_query.append({
+                    "query_id": row["query_id"],
+                    "query": row["query"],
                 })
-                doc_ids.add(passage['docid'])
+                query_ids.add(row["query_id"])
+            for passage in row["positive_passages"]:
+                if passage['docid'] not in doc_ids:
+                    record_passages.append({
+                        "passage_id": passage['docid'],
+                        "passage": passage['text'],
+                    })
+                    doc_ids.add(passage['docid'])
                 record_qrels.append({
                     "query_id": row["query_id"],
                     "passage_id": passage['docid'],
                     "score": 1,
+                    "par_qtd_word_size": len(row["query"].split()) + len(passage['text'].split()),
                 })
-            
-        for passage in row["negative_passages"]:
-            if passage['docid'] not in doc_ids:
-                record_passages.append({
-                    "passage_id": passage['docid'],
-                    "passage": passage['text'],
-                })
-                doc_ids.add(passage['docid'])
+                
+            for passage in row["negative_passages"]:
+                if passage['docid'] not in doc_ids:
+                    record_passages.append({
+                        "passage_id": passage['docid'],
+                        "passage": passage['text'],
+                    })
+                    doc_ids.add(passage['docid'])
 
         idx_query += 1
         if idx_query % num_rows_commitment == 0:
